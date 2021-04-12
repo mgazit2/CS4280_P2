@@ -36,6 +36,7 @@ Node* n(ifstream&);
 Node* a(ifstream&);
 Node* m(ifstream&);
 Node* r(ifstream&);
+Node* label(ifstream&);
 
 
 using namespace std; // for readability
@@ -65,29 +66,51 @@ Node* start_parse(ifstream& file)
 	Node* new_node = gen_node("PROGRAM START");
 	tk = scanner(file);
 	new_node -> child0 = vars(file);
-	new_node -> child1 = block(file);
-	return new_node;
+	if (tk.id == main_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		new_node -> child1 = block(file);
+		return new_node;
+	}
+	else error_hndlr("EXPECTED MAIN\n");
 }
 
 Node* vars(ifstream& file)
 {
 	Node* new_node = gen_node("VARS");
-	if (tk.id != num_tk) return new_node;
-	else
+	if (tk.id == data_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		if (tk.id == ident_tk)
 		{
 			(new_node -> token_vec).push_back(tk);
 			tk = scanner(file);
-			new_node -> child0 = vars(file);
-			return new_node;
+			if (tk.id == assignment_tk)
+			{
+				(new_node -> token_vec).push_back(tk);
+				tk = scanner(file);
+				if (tk.id == num_tk)
+				{
+					(new_node -> token_vec).push_back(tk);
+					tk = scanner(file);
+					if (tk.id == semi_colon_tk)
+					{
+						(new_node -> token_vec).push_back(tk);
+						tk = scanner(file);
+						new_node -> child0 = vars(file);
+						return new_node;
+					}
+					else error_hndlr("EXPECTED SEMICOLON\n");
+				}
+				else error_hndlr("EXPECTED NUM\n");
+			}
+			else error_hndlr("EXPECTED ASSIGNMENT\n");
 		}
-		else
-		{
-			error_hndlr("EXPECTED IDENTIFIER\n");
-		}
+		else error_hndlr("EXPECTED IDENT\n");
 	}
+	else return new_node;
 }
 
 Node* block(ifstream& file)
@@ -95,11 +118,13 @@ Node* block(ifstream& file)
 	Node* new_node = gen_node("BLOCK");
 	if (tk.id == begin_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		new_node -> child0 = vars(file);
 		new_node -> child1 = stats(file);
 		if (tk.id == end_tk)
 		{
+			(new_node -> token_vec).push_back(tk);
 			tk = scanner(file);
 			return new_node;
 		}
@@ -145,7 +170,7 @@ Node* stat(ifstream& file)
 		new_node -> child0 = loop(file);
 		return new_node;
 	}
-	else if(tk.id == ident_tk)
+	else if(tk.id == assign_tk)
 	{
 		new_node -> child0 = assign(file);
 		return new_node;
@@ -153,6 +178,11 @@ Node* stat(ifstream& file)
 	else if(tk.id == proc_tk)
 	{
 		new_node -> child0 = go_to(file);
+		return new_node;
+	}
+	else if(tk.id == void_tk)
+	{
+		new_node -> child0 = label(file);
 		return new_node;
 	}
 	else error_hndlr("EXPECTED STAT\n");
@@ -167,7 +197,8 @@ Node* mStat(ifstream& file)
 		&& tk.id != if_tk
 		&& tk.id != loop_tk
 		&& tk.id != ident_tk
-		&& tk.id != proc_tk)
+		&& tk.id != proc_tk
+		&& tk.id != void_tk)
 	{
 		return new_node;
 	}
@@ -184,6 +215,7 @@ Node* in(ifstream& file)
 	Node* new_node = gen_node("IN");
 	if (tk.id == getter_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		if (tk.id == ident_tk)
 		{
@@ -206,11 +238,17 @@ Node* out(ifstream& file)
 	Node* new_node = gen_node("OUT");
 	if (tk.id = outter_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		new_node -> child0 = expr(file);
-		return new_node;
+		if (tk.id == semi_colon_tk)
+		{
+			tk = scanner(file);
+			return new_node;
+		}
+		else error_hndlr("EXPECTED SEMICOLON\n");
 	}
-	else error_hndlr("EXPECTED OUTTER");
+	else error_hndlr("EXPECTED OUTTER\n");
 }
 
 Node* iF(ifstream& file)
@@ -218,9 +256,11 @@ Node* iF(ifstream& file)
 	Node* new_node = gen_node("IF");
 	if (tk.id == if_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		if (tk.id == l_square_tk)
 		{
+			(new_node -> token_vec).push_back(tk);
 			tk = scanner(file);
 			new_node -> child0 = expr(file);
 			new_node -> child1 = RO(file);
@@ -228,12 +268,19 @@ Node* iF(ifstream& file)
 			tk = scanner(file);
 			if (tk.id == r_square_tk)
 			{
+				(new_node -> token_vec).push_back(tk);
 				tk = scanner(file);
 				if (tk.id == then_tk)
 				{
+					(new_node -> token_vec).push_back(tk);
 					tk = scanner(file);
 					new_node -> child3 = stat(file);
-					return new_node;	
+					if (tk.id == semi_colon_tk)
+					{
+						tk = scanner(file);
+						return new_node;
+					}
+					else("EXPECTED SEMICOLON\n");	
 				}
 				else error_hndlr("EXPECTED THEN\n");
 			}
@@ -249,9 +296,11 @@ Node* loop(ifstream& file)
 	Node* new_node = gen_node("LOOP");
 	if (tk.id == loop_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		if (tk.id == l_square_tk)
 		{
+			(new_node -> token_vec).push_back(tk);
 			tk = scanner(file);
 			new_node -> child0 = expr(file);
 			new_node -> child1 = RO(file);
@@ -259,9 +308,15 @@ Node* loop(ifstream& file)
 			tk = scanner(file);
 			if (tk.id == r_square_tk)
 			{
+				(new_node -> token_vec).push_back(tk);
 				tk = scanner(file);
 				new_node -> child3 = stat(file);
-				return new_node;
+				if (tk.id == semi_colon_tk)
+				{
+					tk = scanner(file);
+					return new_node;
+				}
+				else error_hndlr("EXPECTED SEMICOLON\n");
 			}
 			else error_hndlr("EXPECTED R SQUARE\n");
 		}
@@ -273,14 +328,44 @@ Node* loop(ifstream& file)
 Node* assign(ifstream& file)
 {
 	Node* new_node = gen_node("ASSIGN\n");
-	if (tk.id == ident_tk)
+	if (tk.id == assign_tk)
 	{
 		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
-		if (tk.id == assignment_tk)
+		if (tk.id == ident_tk)
 		{
+			(new_node -> token_vec).push_back(tk);
 			tk = scanner(file);
-			new_node -> child0 = expr(file);
+			if (tk.id == assignment_tk)
+			{
+				(new_node -> token_vec).push_back(tk);
+				tk = scanner(file);
+				new_node -> child0 = expr(file);
+				if(tk.id == semi_colon_tk)
+				{
+					tk = scanner(file);
+					return new_node;
+				}
+				else error_hndlr("EXPECTED SEMICOLON\n");
+			}
+			else error_hndlr("EXPECTED ASSIGNMENT\n");
+		}
+		else error_hndlr("EXPECTED IDENT\n");
+	}
+	else error_hndlr("EXPECTED ASSIGN\n");
+}
+
+Node* go_to(ifstream& file)
+{
+	Node* new_node = gen_node("GOTO");
+	if (tk.id == proc_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		if (tk.id == ident_tk)
+		{
+			(new_node -> token_vec).push_back(tk);
+			tk = scanner(file);
 			if (tk.id == semi_colon_tk)
 			{
 				tk = scanner(file);
@@ -288,14 +373,31 @@ Node* assign(ifstream& file)
 			}
 			else error_hndlr("EXPECTED SEMICOLON\n");
 		}
-		else error_hndlr("EXPECTED ASSIGNMENT\n");
+		else error_hndlr("EXPECTED IDENT\n");
 	}
-	else error_hndlr("EXPECTED IDENT\n");
+	else error_hndlr("EXPECTED PROC\n");
 }
 
-Node* go_to(ifstream& file)
+Node* label(ifstream& file)
 {
-
+	Node* new_node = gen_node("LABEL");
+	if (tk.id == void_tk)
+	{
+		tk = scanner(file);
+		if (tk.id == ident_tk)
+		{
+			(new_node -> token_vec).push_back(tk);
+			tk = scanner(file);
+			if (tk.id == semi_colon_tk)
+			{
+				tk = scanner(file);
+				return new_node;
+			}
+			else error_hndlr("EXPECTED SEMICOLON\n");
+		}
+		else error_hndlr("EXPECTED IDENT\n");
+	}
+	else error_hndlr("EXPECTED VOID\n");
 }
 
 Node* expr(ifstream& file)
@@ -358,10 +460,12 @@ Node* r(ifstream& file)
 	Node* new_node = gen_node("R");
 	if (tk.id == l_paren_tk)
 	{
+		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
 		new_node -> child0 = expr(file);
 		if (tk.id == r_paren_tk)
 		{
+			(new_node -> token_vec).push_back(tk);
 			tk = scanner(file);
 			return new_node;
 		}
@@ -384,7 +488,55 @@ Node* r(ifstream& file)
 
 Node* RO(ifstream& file)
 {
-
+	Node* new_node = gen_node("RO");
+	if (tk.id == greater_than_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		(new_node -> text).assign("RO: GREATER THAN");
+		return new_node;	
+	}
+	else if (tk.id == less_than_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		(new_node -> text).assign("RO: LESS THAN");
+		return new_node;
+	}
+	else if (tk.id == equality_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		(new_node -> text).assign("RO: EQUALITY");
+		return new_node;
+	}
+	else if (tk.id == l_square_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		if (tk.id == equality_tk)
+		{
+			(new_node -> token_vec).push_back(tk);
+			tk = scanner(file);
+			if (tk.id == r_paren_tk)
+			{
+				(new_node -> token_vec).push_back(tk);
+				tk = scanner(file);
+				(new_node -> text).assign("RO: INEQUALITY"); 
+				return new_node;
+			}
+			else error_hndlr("EXPECTED R PAREN\n");
+		}
+		else error_hndlr("EXPECTED EQUALITY\n");
+	}
+	else if (tk.id == mod_tk)
+	{
+		(new_node -> token_vec).push_back(tk);
+		tk = scanner(file);
+		(new_node -> text).assign("RO: MOD");
+		return new_node;
+	}
+	else error_hndlr("EXPECTED GREATER THAN, LESS THAN, EQUALITY, L SQUARE, OR MOD\n");
 }
 
 Node* gen_node(string txt)
