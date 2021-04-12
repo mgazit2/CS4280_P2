@@ -9,6 +9,8 @@
 #include "scanner.h"
 #include "testScanner.h"
 #include "token.h"
+#include "node.h"
+#include "parser.h"
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -59,6 +61,7 @@ int main (int argc, char** argv) {
 	
 	print_table();
 	//scanner(data_file);
-	test_scanner(data_file);
+	//test_scanner(data_file);
+	parse(data_file);
 	return 0;
 }
