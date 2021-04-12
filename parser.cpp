@@ -17,7 +17,7 @@
 
 /* PROTOTYPES */
 void error_hndlr(string);
-Node* start_parse(ifstream&);
+Node* program(ifstream&);
 Node* vars(ifstream&);
 Node* block(ifstream&);
 Node* gen_node(string);
@@ -48,7 +48,7 @@ Node* parse(ifstream& file)
 {
 	Node* parse_tree;
 	//tk = scanner(file);
-	parse_tree = start_parse(file);
+	parse_tree = program(file);
 	if (tk.id != eof_tk) error_hndlr("PARSE FAILED\n");
 	return parse_tree;
 }
@@ -61,7 +61,7 @@ void error_hndlr(string error_txt)
 	exit(1);
 }
 
-Node* start_parse(ifstream& file)
+Node* program(ifstream& file)
 {
 	Node* new_node = gen_node("PROGRAM START");
 	tk = scanner(file);
@@ -100,6 +100,7 @@ Node* vars(ifstream& file)
 						(new_node -> token_vec).push_back(tk);
 						tk = scanner(file);
 						new_node -> child0 = vars(file);
+						//tk = scanner(file);
 						return new_node;
 					}
 					else error_hndlr("EXPECTED SEMICOLON\n");
@@ -129,7 +130,7 @@ Node* block(ifstream& file)
 			return new_node;
 		}
 		else error_hndlr("EXPECTED END\n");
-		
+	
 	}
 	else error_hndlr("EXPECTED BEGIN\n");
 }
@@ -150,7 +151,7 @@ Node* stat(ifstream& file)
 		new_node -> child0 = in(file);
 		return new_node;
 	}
-	else if (tk.id == outter_tk)
+	else if (tk.id == outter_tk || tk.id == exit_tk)
 	{
 		new_node -> child0 = out(file);
 		return new_node;
@@ -165,7 +166,7 @@ Node* stat(ifstream& file)
 		new_node -> child0 = iF(file);
 		return new_node;
 	}
-	else if(tk.id == loop_tk)
+	else if(tk.id == loop_tk || tk.id == whole_tk)
 	{
 		new_node -> child0 = loop(file);
 		return new_node;
@@ -198,7 +199,8 @@ Node* mStat(ifstream& file)
 		&& tk.id != loop_tk
 		&& tk.id != ident_tk
 		&& tk.id != proc_tk
-		&& tk.id != void_tk)
+		&& tk.id != void_tk
+		&& tk.id != exit_tk)
 	{
 		return new_node;
 	}
@@ -236,7 +238,7 @@ Node* in(ifstream& file)
 Node* out(ifstream& file)
 {
 	Node* new_node = gen_node("OUT");
-	if (tk.id = outter_tk)
+	if (tk.id == outter_tk || tk.id == exit_tk)
 	{
 		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
@@ -265,7 +267,7 @@ Node* iF(ifstream& file)
 			new_node -> child0 = expr(file);
 			new_node -> child1 = RO(file);
 			new_node -> child2 = expr(file);
-			tk = scanner(file);
+			//tk = scanner(file);
 			if (tk.id == r_square_tk)
 			{
 				(new_node -> token_vec).push_back(tk);
@@ -294,7 +296,7 @@ Node* iF(ifstream& file)
 Node* loop(ifstream& file)
 {
 	Node* new_node = gen_node("LOOP");
-	if (tk.id == loop_tk)
+	if (tk.id == loop_tk || tk.id == whole_tk)
 	{
 		(new_node -> token_vec).push_back(tk);
 		tk = scanner(file);
@@ -305,7 +307,7 @@ Node* loop(ifstream& file)
 			new_node -> child0 = expr(file);
 			new_node -> child1 = RO(file);
 			new_node -> child2 = expr(file);
-			tk = scanner(file);
+			//tk = scanner(file);
 			if (tk.id == r_square_tk)
 			{
 				(new_node -> token_vec).push_back(tk);

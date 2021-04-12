@@ -8,6 +8,7 @@
 #include "fsa.h"
 #include "scanner.h"
 #include "testScanner.h"
+#include "printTree.h"
 #include "token.h"
 #include "node.h"
 #include "parser.h"
@@ -62,6 +63,7 @@ int main (int argc, char** argv) {
 	print_table();
 	//scanner(data_file);
 	//test_scanner(data_file);
-	parse(data_file);
+	Node* tree = parse(data_file);
+	preorder(tree, 0);
 	return 0;
 }
